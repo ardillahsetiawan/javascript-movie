@@ -1,36 +1,56 @@
-$('.search-button').on ('click', function(){
-
-    $.ajax({
-        url : 'http://www.omdbapi.com/?apikey=a750ab77&s=' + $('.input-keyword').val(),
-        success: result => {
-            const moives = result.Search;
-            let cards = '';
-            moives.forEach(m => {
-                cards += showCards(m);
-            });
-            $('.movie-container').html(cards);
-    
-            $('.modal-detail-button').on('click', function(){
-                $.ajax({
-                    url : 'http://www.omdbapi.com/?apikey=a750ab77&i=' + $(this).data('imdbid'),
-                    success: m => {
-                        const movideDetail = showMovieDetail(m);
-                        $('.modal-body').html(movideDetail);
-                    },
-                    error: (e) => {
-                        console.log(e.responseText);
-                    }
-                });
-            });
-        },
-        error: (e) => {
-            console.log(e.responseText);
-        }
-        
-    });
+const searchButton = document.querySelector('.search-button');
+searchButton.addEventListener('click', async function(){
+    try {
+        const inputKeyword = document.querySelector('.input-keyword');
+        const movies = await getMovies(inputKeyword.value);
+        updateUI(movies);
+    } catch (err){
+        alert(err);
+    }
 });
 
+function getMovies(keyword){
+    return fetch ('http://www.omdbapi.com/?apikey=a750ab77&s=' + keyword)
+    .then(response => {
+        if (!response.ok){
+            throw new Error(response.statusText);
+        }
+        return response.json();
+    })
+    .then(response => {
+        if (response.Response === "False"){
+            throw new Error(response.Error);
+        }
+        return response.Search;
+    });
+}
 
+function updateUI(movies) {
+    let cards = '';
+    movies.forEach(m => cards += showCards(m));
+    const movieContainer = document.querySelector('.movie-container');
+    movieContainer.innerHTML = cards;
+}
+
+document.addEventListener('click', async function(e) {
+    if (e.target.classList.contains('modal-detail-button')){
+        const imdbid = e.target.dataset.imdbid;
+        const movieDetail = await getMovieDetail(imdbid);
+        updateUIDetail(movieDetail);
+    }
+});
+
+function getMovieDetail(imdbid){
+    return fetch('http://www.omdbapi.com/?apikey=a750ab77&i=' + imdbid)
+    .then(response => response.json())
+    .then(m => m);
+}
+
+function updateUIDetail(m){
+    const movieDetail = showMovieDetail(m);
+    const modalBody = document.querySelector('.modal-body');
+    modalBody.innerHTML = movieDetail;
+}
 
 function showCards(m){
     return `<div class="col-md-4 my-3">
@@ -44,6 +64,8 @@ function showCards(m){
                 </div>
             </div>`;
 }
+
+
 
 function showMovieDetail(m){
     return `<div class="contrainer-fluid">
